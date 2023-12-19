@@ -67,7 +67,8 @@ def calc_rr(peaklist, sample_rate, working_data={}):
     '''
     peaklist = np.array(peaklist) #cast numpy array to be sure or correct array type
 
-    #delete first peak if within first 150ms (signal might start mid-beat after peak)
+    print("Yes. I am in analysis, calc_rr.")
+    # delete first peak if within first 150ms (signal might start mid-beat after peak)
     if len(peaklist) > 0:
         if peaklist[0] <= ((sample_rate / 1000.0) * 150):
             peaklist = np.delete(peaklist, 0)
@@ -369,6 +370,7 @@ def calc_ts_measures(rr_list, rr_diff, rr_sqdiff, measures={}, working_data={}):
     67.082
     '''
 
+    # bpm = 60/RR-distance [s] -> we need to convert
     measures['bpm'] = 60000 / np.mean(rr_list)
     measures['ibi'] = np.mean(rr_list)
 
@@ -754,18 +756,24 @@ def calc_poincare(rr_list, rr_mask=[], measures={}, working_data={}):
         poincare values are appended to measures['poincare']
     '''
 
+    print("Hello. I am in analysis.py in calc_poincare.")
+    print(f'RR_masklist (in calc_poincare): {working_data["RR_masklist"]}')
+    print(f'RR_list (in calc_poincare): {working_data["RR_list"]}')
+
     #generate vectors of adjacent peak-peak intervals
     x_plus = []
     x_minus = []
 
     for i in range(len(working_data['RR_masklist']) - 1):
-        if working_data['RR_masklist'][i] + working_data['RR_masklist'][i + 1] == 0:
+        if working_data['RR_masklist'][i] == 0 + working_data['RR_masklist'][i + 1] == 0:
             #only add adjacent RR-intervals that are not rejected
             x_plus.append(working_data['RR_list'][i])
             x_minus.append(working_data['RR_list'][i + 1])
         else:
             pass
 
+    print(f'x_plus in calc_poincare: {x_plus}')
+    print(f'x_minus in calc_poincare: {x_minus}')
     #cast to arrays so we can do numerical work easily
     x_plus = np.asarray(x_plus)
     x_minus = np.asarray(x_minus)
@@ -778,6 +786,68 @@ def calc_poincare(rr_list, rr_mask=[], measures={}, working_data={}):
     s = np.pi * sd1 * sd2 #compute area of ellipse
 
     #write computed measures to dicts
+    measures['sd1'] = sd1
+    measures['sd2'] = sd2
+    measures['s'] = s
+    measures['sd1/sd2'] = sd1 / sd2
+
+    working_data['poincare'] = {}
+    working_data['poincare']['x_plus'] = x_plus
+    working_data['poincare']['x_minus'] = x_minus
+    working_data['poincare']['x_one'] = x_one
+    working_data['poincare']['x_two'] = x_two
+    print(f'sd1: {measures["sd1"]}.')
+    print(f'sd2: {measures["sd2"]}.')
+    print(f'sd1/sd2: {measures["sd1/sd2"]}.')
+
+    return measures
+
+def calculation_poincare(measures={}, working_data={}):
+
+    # generate vectors of adjacent peak-peak intervals
+    x_plus = []
+    x_minus = []
+
+    print(f'in calculation_poincare, working_data[RR_masklist]: {working_data["RR_masklist"]}')
+    print(f'in calculation_poincare, working_data[RR_list]: {working_data["RR_list"]}')
+
+    # when first entry in RR_masklist is 1, we need to start the routine later on (when entry is 0) in order to guarantee correct order in x_plus and x_minus
+    j = 0
+    while working_data['RR_masklist'][j] == 1:
+        j += 1
+        print(f'I am in the while loop in calculation_poincare: {j}')
+
+    for i in range(j, len(working_data['RR_masklist']) - 1):
+        if (working_data['RR_masklist'][i] == 0 and working_data['RR_masklist'][i + 1] == 0):
+            x_plus.append(working_data['RR_list'][i])
+            x_minus.append(working_data['RR_list'][i + 1])
+        elif (working_data['RR_masklist'][i] == 0 and working_data['RR_masklist'][i + 1] == 1):
+            x_plus.append(working_data['RR_list'][i])
+            print(f'first elif')
+        elif (working_data['RR_masklist'][i] == 1 and working_data['RR_masklist'][i + 1] == 0):
+            x_minus.append(working_data['RR_list'][i + 1])
+            print(f'second elif')
+        else:
+            pass
+
+    # cast to arrays so we can do numerical work easily
+    x_plus = np.asarray(x_plus)
+    x_minus = np.asarray(x_minus)
+    print(f'x_plus: {x_plus}')
+    print(f'x_minus: {x_minus}')
+
+    # in case one array is longer than the other -> shorten the larger one (just cut at the end)
+    x_plus = x_plus[:len(x_minus)]
+    x_minus = x_minus[:len(x_plus)]
+
+    # compute parameters and append to dict
+    x_one = (x_plus - x_minus) / np.sqrt(2)
+    x_two = (x_plus + x_minus) / np.sqrt(2)
+    sd1 = np.sqrt(np.var(x_one))  # compute stdev perpendicular to identity line
+    sd2 = np.sqrt(np.var(x_two))  # compute stdev parallel to identity line
+    s = np.pi * sd1 * sd2  # compute area of ellipse
+
+    # write computed measures to dicts
     measures['sd1'] = sd1
     measures['sd2'] = sd2
     measures['s'] = s

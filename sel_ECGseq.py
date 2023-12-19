@@ -123,6 +123,7 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
         print(f'type of masklist: {type(masklist)}')
         wd_segment['ybeat'] = working_data['ybeat'][i]
         wd_segment['removed_beats'] = working_data['removed_beats'][i]
+        print(f'working_data[removed_beats][i]: {working_data["removed_beats"][i]}')
         wd_segment['removed_beats_y'] = working_data['removed_beats_y'][i]
         wd_segment['hr'] = working_data['hr'][i]
         wd_segment['rolling_mean'] = working_data['rolling_mean'][i]
@@ -167,7 +168,7 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
             new_xydata_point_b = xydata_a[new_xdata_point_b, :]
 
             if event.button == 2:
-                # middle mouse button
+                # middle mouse button (set new peak)
                 if new_xdata_point_b not in xdata_b:
                     print(f'new_xdata_point_b: {new_xdata_point_b}')
                     # insert new scatter point into b
@@ -378,15 +379,18 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                 sel_peak = (artist.get_offsets()[:, 0]).astype(int)
                 print(f'sel_peak: {sel_peak}')
                 print(f'peaklist: {peaklist}')
-                print(f'RR_masklist: {masklist}')
-                print(f'path_collection sizes: {c.get_sizes()}')
+                #print(f'path_collection sizes: {c.get_sizes()}')
                 artist_edgecolor = np.round(artist.get_edgecolor(), 8)
-                if artist_edgecolor[0][1] == 0.50196078: # peak is green
+                # peak is actually green and is set to red
+                if artist_edgecolor[0][1] == 0.50196078:
                     props = {"color": "red"}
                     Artist.update(artist, props)
-                    #plt.draw()
-                    ## add sel_peak to array xy_rejPeaks
+                    ## add sel_peak to array xy_rejPeaks and to wd_segment['removed_beats']
                     xy_rejPeaks = np.insert(xy_rejPeaks, 0, sel_point, axis = 0)
+                    wd_segment['removed_beats'] = np.insert(wd_segment['removed_beats'], 0, sel_peak, axis=0)
+                    working_data['removed_beats'][i] = np.insert(working_data['removed_beats'][i], 0, sel_peak, axis = 0)
+                    print(f'working_data["removed_beats"][i]: {working_data["removed_beats"][i]}')
+                    print(f'wd_segment["removed_beats"]: {wd_segment["removed_beats"]}')
                     print(f'xy_rejPeaks: {xy_rejPeaks}')
                     print(f'type of xy_rejPeaks: {type(xy_rejPeaks)}')
                     ## update c
@@ -397,33 +401,35 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                     print(f'peak_ind: {peak_ind}')
                     # set index and index-1 in masklist to 1 (1 means that this peak is not considered later on)
                     print(f'masklist: {masklist}')
+                    # peak is the first in sequence
                     if peak_ind == 0:
                         masklist[peak_ind] = 1
+                    # peak is the last in sequence
                     elif peak_ind == len(peaklist)-1:
                         print("I am the last peak in this sequence plot")
                         masklist[peak_ind-1] = 1
+                    # peak is within sequence
                     else:
                         print("Here I am right")
                         masklist[peak_ind] = 1
                         masklist[peak_ind-1] = 1
                     print(f'masklist: {masklist}')
                     print(f'wd_segment[RR_masklist]: {wd_segment["RR_masklist"]}')
-                    print(f'type of peak_ind: {type(peak_ind)}')
-                    #Artist.update(artist, props)
-                    #plt.draw()
             elif event.mouseevent.button == 3 and isinstance(event.artist, Artist):
                 artist = event.artist
-                #sel_point = artist.get_offsets()
                 sel_peak = (artist.get_offsets()[:, 0]).astype(int)
                 artist_edgecolor = np.round(artist.get_edgecolor(), 8)
-                if artist_edgecolor[0][1] != 0.50196078: # peak is red (and is set to green)
+                # peak is actually red (and is set to green)
+                if artist_edgecolor[0][1] != 0.50196078:
                     props = {"color": "green"}
-                    #print(f'removedpeaks: {removedpeaks}')
-                    # delete sel_peak from xy_rejPeaks or from wd_segment['removed_beats']
+                    print(f'removedpeaks: {working_data["removed_beats"][i]}')
+                    # delete sel_peak from xy_rejPeaks (only necessary, when last rejected peak in sequence is deleted) and from wd_segment['removed_beats']
                     xy_rejPeaks = np.delete(xy_rejPeaks, np.where(x_rejPeaks == sel_peak), axis=0) #np.delete(xy_rejPeaks, 0, sel_point, axis=0)
-                    wd_segment['removed_beats'] = np.delete(wd_segment['removed_beats'], np.where(wd_segment['removed_beats'] == sel_peak),axis=0)
+                    wd_segment['removed_beats'] = np.delete(wd_segment['removed_beats'], np.where(wd_segment['removed_beats'] == sel_peak), axis=0)
+                    working_data['removed_beats'][i] = np.delete(working_data['removed_beats'][i], np.where(working_data['removed_beats'][i] == sel_peak), axis=0)
                     print(f'xy_rejPeaks after deleting: {xy_rejPeaks}')
                     print(f'wd_segment removed_beats after deleting: {wd_segment["removed_beats"]}')
+                    print(f'working_data[removed_beats][i] removed_beats after deleting: {working_data["removed_beats"][i]}')
                     # update c
                     c.set_offsets(xy_rejPeaks)
                     # get x_rejPeaks
@@ -433,20 +439,22 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                     print(f'peak_ind: {peak_ind}')
                     # set index and index-1 in masklist to 0 (0 means that this peak is considered later on)
                     print(f'masklist: {masklist}')
+                    # adapt masklist for changed first peak in peaklist
                     if peak_ind == 0:
-                        # removedpeaks ersetzt
                         if (peaklist[peak_ind+1] in xy_rejPeaks[:,0].astype(int)) or (peaklist[peak_ind+1] in wd_segment['removed_beats']):
                             print("true")
                             masklist[peak_ind] = 1
                         else:
                             print("false")
                             masklist[peak_ind] = 0
+                    # adapt masklist for changed last peak in peaklist
                     elif peak_ind == len(peaklist)-1:
                         print("I am the last peak in this plot")
                         if (peaklist[peak_ind-1] in xy_rejPeaks[:,0].astype(int)) or (peaklist[peak_ind-1] in wd_segment['removed_beats']):
                             masklist[peak_ind-1] = 1
                         else:
                             masklist[peak_ind-1] = 0
+                    # adapt masklist for a changed peak in between
                     else:
                         if (peaklist[peak_ind-1] in xy_rejPeaks[:,0].astype(int)) or (peaklist[peak_ind-1] in wd_segment['removed_beats']):
                             if peaklist[peak_ind+1] in xy_rejPeaks[:,0].astype(int) or (peaklist[peak_ind+1] in wd_segment['removed_beats']):
@@ -468,7 +476,6 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                                 masklist[peak_ind - 1] = 0
                                 masklist[peak_ind] = 0
 
-                   # print(f'removedpeaks: {removedpeaks}')
                     print(f'masklist: {masklist}')
                     print(f'wd_segment[RR_masklist]: {wd_segment["RR_masklist"]}')
                     Artist.update(artist, props)
@@ -532,14 +539,17 @@ subject = 'sub03_'
 sample_rate = 200
 
 # get raw data (header and data)
-hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03.csv', column_name='uV')
-timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03.csv', column_name='dt')
+hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03_part.csv', column_name='uV')
+timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03_part.csv', column_name='dt')
 
 # bandpass filter given by heartpy
 bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,21], sample_rate=sample_rate, order=3, filtertype='bandpass')
 
 # create working_data dict, in which we can integrate merged arrays later on (in order to enable poincare plot)
+# here in process-function: calc_poincare for complete data set
 wd_whole_epi, meas_whole_epi = hp.process(bp_filtered, sample_rate=sample_rate)
+print(f'working_data wd_whole_epi: {wd_whole_epi}')
+print(f'Peaklist whole epi at beginning: {wd_whole_epi["peaklist"]}')
 print(f'RR_masklist whole connected epi at beginning: {wd_whole_epi["RR_masklist"]}')
 print(f'RR_list whole connected epi at beginning: {wd_whole_epi["RR_list"]}')
 print(f'RR_list_cor whole connected epi at beginning: {wd_whole_epi["RR_list_cor"]}')
@@ -549,6 +559,7 @@ seq_width = int(input("Sequence width: "))
 
 # process segmentwise (just the processing, not the plotting yet)
 work_data, meas = hp.process_segmentwise(bp_filtered, sample_rate=sample_rate, segment_width=seq_width)
+print(f'meas: {meas}')
 
 # Array to store selected hr data (we do not need for the moment!)
 stitched_hr_data = []
@@ -558,41 +569,144 @@ stitched_peaklists = []
 stitched_RR_masklists = []
 # Array to store RR_lists
 stitched_RR_lists = []
+# Arry to store removed_beats
+stitched_removed_beats = []
 
 choosen_seq = sequence_plotter(work_data, meas, path='/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/segmentwise_plotting/', subject=subject)
+print(f'meas1: {meas}')
 print(f'choosen_seq: {choosen_seq}')
 print(f'work_data[peaklist][0]: {work_data["peaklist"][0]}')
 print(f'work_data[peaklist][1]: {work_data["peaklist"][1]}')
-print(f'work_data[peaklist][2]: {work_data["peaklist"][2]}')
 print(f'work_data[RR_masklist][0]: {work_data["RR_masklist"][0]}')
-# TO DO: RR_list needs to be updated
 print(f'work_data[RR_list][0]: {work_data["RR_list"][0]}')
+print(f'work_data[removed_beats][0]: {work_data["removed_beats"][0]}')
 
 # sequences selected by the user are stitched together
-# peaklists need to be recalculated (because indexing starts anew with each sequence)
+# peaklists and removed_beats need to be recalculated (because indexing starts anew with each sequence)
 nr_samplepoints_per_seq = seq_width * sample_rate
 print(f'nr_samplepoints_per_seq: {nr_samplepoints_per_seq}')
+print(f'length choosen_seq: {len(choosen_seq)}')
 
 for j in range(0, len(choosen_seq)):
+    print(f'j: {j}')
     if choosen_seq[j] == 1:
+        stitched_hr_data.append(work_data['hr'][j])
         stitched_peaklists.append(work_data['peaklist'][j] + (j * nr_samplepoints_per_seq))
+        stitched_removed_beats.append(work_data['removed_beats'][j] + (j * nr_samplepoints_per_seq))
         stitched_RR_masklists.append(work_data['RR_masklist'][j])
         stitched_RR_lists.append(work_data['RR_list'][j])
     else:
         print(f'sequence {j + 1} is not appended.')
+        stitched_hr_data.append(np.zeros(nr_samplepoints_per_seq))
+
+print(f'stitched_peaklists: {stitched_peaklists}')
+print(f'length stitched_peaklists: {len(stitched_peaklists)}')
+print(f'length single entry in stitched_peaklists: {len(stitched_peaklists[0])}')
+print(f'stitched_RR_masklists: {stitched_RR_masklists}')
+print(f'length single entry in stitched_RR_masklists: {len(stitched_RR_masklists[0])}')
+print(f'stitched_RR_lists: {stitched_RR_lists}')
+print(f'length single entry in stitched_RR_lists: {len(stitched_RR_lists[0])}')
+print(f'length stitched_hr_data: {len(stitched_hr_data)}')
+
+# we need to fill up RR_list and RR_masklist to take into account the transitions between the individual sequences
+# distance between last peak in one sequence and first peak in subsequent sequence is not yet taken into account
+# RR_list and RR_masklist must be of length (len(peaklist)-1)
+for i in range(0, len(stitched_peaklists)-1):
+    rr_diff_trans = ((stitched_peaklists[i+1][0] - stitched_peaklists[i][len(stitched_peaklists[i]) - 1]) * 1000)/sample_rate
+    # at the moment we do not take the transition differences into account (we leave them out; do not consider them for calculation measures)
+    stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 1)
+    stitched_RR_lists[i] = np.append(stitched_RR_lists[i], rr_diff_trans)
+
+print(f'last array entry stitched_peaklists[0]: {stitched_peaklists[0][len(stitched_peaklists[0])-1]}')
+print(f'first array entry stitched_peaklists[1]: {stitched_peaklists[1][0]}')
+#rr_diff_trans = ((stitched_peaklists[1][0] - stitched_peaklists[0][len(stitched_peaklists[0])-1])*1000)/200
+print(f'stitched_RR_lists: {stitched_RR_lists}')
+print(f'length single entry in stitched_RR_lists: {len(stitched_RR_lists[0])}')
+print(f'length single entry in stitched_RR_masklists: {len(stitched_RR_masklists[0])}')
+print(f'stitched_RR_masklists: {stitched_RR_masklists}')
 
 # merges stitched lists to one big list
+merged_hr = list(itertools.chain(*stitched_hr_data))
 merged_peaklists = list(itertools.chain(*stitched_peaklists))
+print(f'length merged_peaklists: {len(merged_peaklists)}')
 merged_RR_masklist = list(itertools.chain(*stitched_RR_masklists))
 merged_RR_list = list(itertools.chain(*stitched_RR_lists))
+merged_removed_beats = list(itertools.chain(*stitched_removed_beats))
+print(f'length merged_RR_list: {len(merged_RR_list)}')
+print(f'length merged_RR_masklist: {len(merged_RR_masklist)}')
+print(f'length merged_removed_beats: {len(merged_removed_beats)}')
 
 ### put merged lists in working_data dict of whole episode
+wd_whole_epi['hr'] = merged_hr
 wd_whole_epi['peaklist'] = merged_peaklists
 wd_whole_epi['RR_masklist'] = merged_RR_masklist
 wd_whole_epi['RR_list'] = merged_RR_list
+wd_whole_epi['removed_beats'] = merged_removed_beats
+print(f'removed_beats whole epi final: {wd_whole_epi["removed_beats"]}')
+print(f'peaklist whole epi final: {wd_whole_epi["peaklist"]}')
 print(f'RR_masklist whole epi final: {wd_whole_epi["RR_masklist"]}')
 print(f'RR_list whole epi final: {wd_whole_epi["RR_list"]}')
+print(f'meas_whole_epi: {meas_whole_epi}')
+print(f'ybeat: {wd_whole_epi["ybeat"]}')
 
-## Poincare Plot
-hp.plot_poincare(wd_whole_epi, meas_whole_epi, figsize = (20,5), title='Poincare Plot')
+## recalculate wd parameters that are used for calculation of measures
+# Calculation of ybeat might be wrong (in peaklist also the rejected ones are listed!!!)
+print(f'length merged_hr: {len(merged_hr)}')
+print(f'merged_peaklists: {merged_peaklists}')
+wd_whole_epi['ybeat'] = [merged_hr[x] for x in merged_peaklists]
+rr_list_cor = np.array([merged_RR_list[i] for i in range (len(merged_RR_masklist)) if merged_RR_masklist[i] == 0])
+wd_whole_epi['RR_diff_cor'] = rr_list_cor
+print(f'rr_list_cor: {rr_list_cor}')
+wd_whole_epi['removed_beats_y'] = [merged_hr[x] for x in merged_removed_beats]
+rr_diff = np.abs(np.diff(rr_list_cor))
+print(f'rr_diff: {rr_diff}')
+rr_sqdiff = np.power(rr_diff, 2)
+
+## Question: Couldn't it be easier?? (because I already calculated rr_list_cor) -> yes!
+## the following just takes the differences of subsequent RR-distances into account (not interrupted by red peak)
+## this is what we do not want; we want to take into account all differences of valid RR-distances, even if they are not in direct succession
+# rr_masked shows all RR-differences that are valid (don't interrupted by red peak) and also marks the positions in the array that are not valid with --
+# rr_masked = np.ma.array(merged_RR_list, mask=merged_RR_masklist)
+# print(f'rr_masked: {rr_masked}')
+# rr_diff = np.abs(np.diff(rr_masked))
+# print(f'rr_diff2: {rr_diff}')
+# rr_diff = rr_diff[~rr_diff.mask]
+# print(f'rr_diff: {rr_diff}')
+# rr_sqdiff = np.power(rr_diff, 2)
+
+wd_whole_epi['RR_diff'] = rr_diff
+wd_whole_epi['RR_sqdiff'] = rr_sqdiff
+
+#print(f'wd_whole_epi 1: {wd_whole_epi}')
+
+# func calc_ts_measures calculates BPM, IBI, SDNN, SDSD, RMSSD, pNN20, pNN50, MAD
+wd_whole_epi, meas_whole_epi = hp.analysis.calc_ts_measures(rr_list_cor, rr_diff, rr_sqdiff, measures = meas_whole_epi, working_data = wd_whole_epi)
+
+#wd_whole_epi['sample_rate'] = sample_rate
+#print(f'wd_whole_epi["sample_rate"]: {wd_whole_epi["sample_rate"]}')
+#print(f'wd_whole_epi 2: {wd_whole_epi}')
+print(f'wd_whole_epi["rolling_mean"]: {wd_whole_epi["rolling_mean"]}')
+
+# calc rolling_mean
+rol_mean = hp.datautils.rolling_mean(merged_hr, 0.75, sample_rate)
+wd_whole_epi['rolling_mean'] = rol_mean
+
+# plot merged dataset to proof whether algorithm worked correctly
+hp.plotter(wd_whole_epi, meas_whole_epi)
+plt.show()
+
+# calc_poincare just needs working_data for calculation, but throws an error when the other parameter are missing; measures is only needed for writing in the
+# recalculated SD1, SD2 ... parameter
+# func works with rr_list and rr_masklist
+#meas_poincare = hp.analysis.calc_poincare(merged_RR_list, rr_mask = merged_RR_masklist, measures=meas_whole_epi, working_data=wd_whole_epi)
+meas_poincare = hp.analysis.calculation_poincare(measures=meas_whole_epi, working_data=wd_whole_epi)
+
+print(f'meas_poincare: {meas_poincare}')
+print(f'meas_whole_epi1: {meas_whole_epi}')
+
+## Poincare Plot (kommt bei beiden das gleiche raus, weil wir innerhalb von calc_poincare in measures schreiben und das dann in beiden measures dicts drin)
+# bei beiden kommt das gleiche raus, weil nur die
+#hp.plot_poincare(wd_whole_epi, meas_whole_epi, figsize = (20,5), title='Poincare Plot 1')
+#plt.show()
+hp.plot_poincare(wd_whole_epi, meas_poincare, figsize = (20,5), title='Poincare Plot 2')
 plt.show()

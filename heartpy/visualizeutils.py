@@ -104,7 +104,8 @@ def plotter(working_data, measures, show=True, figsize=None,
         ax.plot(plotx, working_data['rolling_mean'], color='gray', alpha=0.5)
 
     ax.scatter(np.asarray(peaklist)/fs, ybeat, color=colorpalette[1], label='BPM:%.2f' %(measures['bpm']))
-    ax.scatter(rejectedpeaks/fs, rejectedpeaks_y, color=colorpalette[2], label='rejected peaks')
+    #ax.scatter(rejectedpeaks/fs, rejectedpeaks_y, color=colorpalette[2], label='rejected peaks')
+    ax.scatter(np.asarray(rejectedpeaks)/fs, rejectedpeaks_y, color=colorpalette[2], label='rejected peaks')
 
     #check if rejected segment detection is on and has rejected segments
     try:
@@ -298,6 +299,7 @@ def plot_poincare(working_data, measures, show = True, figsize=None,
     ax.set_xlabel(r'RRi$_n$ (ms)')
     ax.set_ylabel(r'RRi$_{n+1}$ (ms)')
     ax.legend(loc=4, framealpha=0.6)
+    #ax.legend(loc=(1.5,1.5), framealpha=0.6)
     ax.set_title(title)
 
     #plt.xlim(550,1120) # 430,900/1000

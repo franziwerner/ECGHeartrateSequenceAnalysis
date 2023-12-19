@@ -320,7 +320,7 @@ rate data, consider filtering and/or scaling first.\n----------------\n')
 def check_peaks(rr_arr, peaklist, ybeat, reject_segmentwise=False, working_data={}):
     '''find anomalous peaks.
 
-    Funcion that checks peaks for outliers based on anomalous peak-peak distances and corrects
+    Function that checks peaks for outliers based on anomalous peak-peak distances and corrects
     by excluding them from further analysis.
 
     Parameters
