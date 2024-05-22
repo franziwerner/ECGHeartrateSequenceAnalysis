@@ -831,10 +831,12 @@ def calculation_poincare(measures={}, working_data={}):
             pass
 
     # cast to arrays so we can do numerical work easily
+    print(f'length x_plus: {len(x_plus)}')
+    print(f'length x_minus: {len(x_minus)}')
     x_plus = np.asarray(x_plus)
     x_minus = np.asarray(x_minus)
-    print(f'x_plus: {x_plus}')
-    print(f'x_minus: {x_minus}')
+    print(f'length x_plus: {len(x_plus)}')
+    print(f'length x_minus: {len(x_minus)}')
 
     # in case one array is longer than the other -> shorten the larger one (just cut at the end)
     x_plus = x_plus[:len(x_minus)]

@@ -7,7 +7,6 @@ import os
 from matplotlib.artist import Artist
 
 def plotter(working_data, measures, show=True, figsize=None, title='Heart Rate Signal Peak Detection', moving_average=True):
-    print("Hello")
 
     # inititalize Path.Collection in order to merge single scatterplots to a big one
     #d = matplotlib.collections.PathCollection
@@ -65,25 +64,26 @@ def plotter(working_data, measures, show=True, figsize=None, title='Heart Rate S
 
     ax.legend(loc=4, framealpha=0.6)
 
+    # later on (set.offsets) plotter is called with show = False
     if show:
         fig.show()
     else:
         if not rejectedpeaks.size:
             print("true: rejectedpeaks is empty")
             # TO DO: empty pathCollection (oder einfach nochmal b übergeben und letzten Wert rauslöschen??)
-            c = plt.scatter(0,0, color=colorpalette[2])
+            c = plt.scatter(0, 0, color=colorpalette[2])
             #print(f'offsets.shape: {c.offsets.shape}')
             #rejP = False
         #else:
             #rejP = True
         if not peaklist.size:
             print("Peaklist is empty")
-            b = plt.scatter(0,0, color=colorpalette[1])
+            b = plt.scatter(0, 0, color=colorpalette[1])
 
         return fig, a, b, c
 
 
-### needed function
+### core func: plots user-defined sequences and allows the automatically determined peak values to be changed manually
 def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detection', figsize=(6, 6), path='', subject='', start=0, end=None, step=1):
 
     # sanity check
@@ -112,10 +112,10 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
         m_segment = {}
         mutable_object = {}
         mutable_object['RR_masklist'] = working_data['RR_masklist'][i]
-        print(f'mutable_object: {mutable_object}')
         # assign values to sub-object for plotting purposes
         wd_segment['peaklist'] = working_data['peaklist'][i]
         peaklist = wd_segment['peaklist']
+        lastAutoPeak = peaklist[len(peaklist)-1]
         print(f'peaklist: {peaklist}')
         wd_segment['RR_masklist'] = working_data['RR_masklist'][i]
         masklist = wd_segment['RR_masklist']
@@ -135,17 +135,17 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
             pass
 
         ## plot it using built-in plotter
+        # a contains hr data
+        # b contains peaks
+        # c contains rejected peaks
         fig1, a, b, c = plotter(wd_segment, m_segment, show=False)
         print(f'c.get_offsets: {c.get_offsets()}')
 
         def add_or_remove_point(event):
-            #nonlocal rr_mask
-            print(f'event.key: {event.key}')
             nr = 0
             xydata_a = np.stack(a.get_data(), axis=1)
-            #print(f'xydata_a: {xydata_a}')
             xdata_a = a.get_xdata()
-            #print(f'xdata_a: {xdata_a}')
+            print(f'xdata_a: {xdata_a}')
             # get peak coordinates from automatic peak detection
             xydata_b = b.get_offsets()
             print(f'xydata_b: {xydata_b}')
@@ -154,18 +154,45 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
             # get rejected peaks
             xy_rejPeaks = c.get_offsets()
             x_rejPeaks = c.get_offsets()[:, 0]
-            print(f'xy_rejPeaks: {xy_rejPeaks}')
             print(f'x_rejPeaks: {x_rejPeaks}')
 
             # click x-value
             xdata_click = event.xdata
+            print(f'xdata_click: {xdata_click}')
             ##index of nearest x-value in a
             # we only accept points on curve
             xdata_nearest_index_a = (np.abs(xdata_a - xdata_click)).argmin()
-            # new scatter point x-value
-            new_xdata_point_b = xdata_a[xdata_nearest_index_a]
+            print(f'xdata_nearest_index_a: {xdata_nearest_index_a}')
+
+            ## NEW!!! (set point has to be max of curve part)
+            xmin = xdata_nearest_index_a - 10 # value of 10 is still arbitrary (what is the most suited value?)
+            xmax = xdata_nearest_index_a + 10
+            subarr = xdata_a[xmin:xmax]
+            print(f'subarr: {subarr}')
+            xydata_a_subarr = xydata_a[subarr, :]
+            print(f'xydata_a_subarr: {xydata_a_subarr}')
+            ydata_a_subarr = xydata_a_subarr[:,1]
+            print(f'ydata_a_subarr: {ydata_a_subarr}')
+            # the following two lines are unnecessary (we just need the index of max value), but for checking whether everything works fine
+            maxV = max(ydata_a_subarr)
+            print(f'maxV: {maxV}')
+            indexMaxV = np.argmax(ydata_a_subarr)
+            print(f'index maxV: {indexMaxV}')
+
             # new scatter point [x-value, y-value]
+            # subarr contains indices from hr (5s sequence: indices from 0-999)
+            new_xdata_point_b = subarr[indexMaxV]
+            print(f'new_xdata_point_b: {new_xdata_point_b}')
             new_xydata_point_b = xydata_a[new_xdata_point_b, :]
+            print(f'new_xydata_point_b: {new_xydata_point_b}')
+
+            ## OLD: new clicked point was set on curve to exact x-value, but neglected y-value
+            ## new scatter point x-value (identical with xdata_nearest_index_a)
+            #new_xdata_point_b = xdata_a[xdata_nearest_index_a]
+
+            ## new scatter point [x-value, y-value]
+            #new_xydata_point_b = xydata_a[new_xdata_point_b, :]
+
 
             if event.button == 2:
                 # middle mouse button (set new peak)
@@ -180,16 +207,20 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                     new_xydata_b = new_xydata_b[np.argsort(new_xydata_b[:, 0])]
                     print(f'new_xydata_b sorted: {new_xydata_b}')
                     # update b (peaklist)
+                    b.set_color('green')
                     b.set_offsets(new_xydata_b)
-                    ### the newly selected peaks (must be integrated in peaklist)
-                    ## when the selected peak is the last in sequence
-                    if new_xdata_b[0] == new_xdata_b.max():
-                        print("True. Peak Index is max.")
-                        new_xdata_peaks = np.delete(new_xydata_b[:, 0], len(new_xydata_b[:, 0]) - 2)
-                    else:
-                        print("Selected peak is not at max index.")
-                        new_xdata_peaks = np.delete(new_xydata_b[:, 0], len(new_xydata_b[:, 0]) - 1)
+                    ### the newly set peak (must be integrated in peaklist), but only the ones that are set manually (not the lastAutoPeak)
+                    new_xdata_peaks = np.delete(new_xydata_b[:,0], np.where(new_xydata_b[:,0] == peaklist[len(peaklist)-1]))
+                    ## when the set peak is the last in sequence
+                    # if new_xdata_b[0] == new_xdata_b.max():
+                    #     print("True. Peak Index is max.")
+                    #     new_xdata_peaks = np.delete(new_xydata_b[:, 0], len(new_xydata_b[:, 0]) - 2) # -count
+                    #     #count += 1
+                    # else:
+                    #     print("Set peak is not at max index.")
+                    #     new_xdata_peaks = np.delete(new_xydata_b[:, 0], len(new_xydata_b[:, 0]) - 1)
                     print(f'new_xdata_peaks: {new_xdata_peaks}')
+                    print(f'peaklist: {peaklist}')
                     print(f'length of new_xdata_peaks: {len(new_xdata_peaks)}')
                     all_peaks = np.concatenate((peaklist, (new_xdata_peaks.astype(int))), axis=0)
                     print(f'all_peaks unsorted: {all_peaks}')
@@ -308,7 +339,7 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                     print(f'peakInd: {peakInd}')
                     plt.draw()
             elif event.button == 3:
-                # right mouse button (delete only self-set points! (leave red-marked points that are correct)
+                # right mouse button (delete only self-set points! (leave red-marked points that are correct))
                 if new_xdata_point_b in xdata_b:
                     print(f'peaklist: {peaklist}')
                     # remove xdata point b
@@ -480,13 +511,23 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                     print(f'wd_segment[RR_masklist]: {wd_segment["RR_masklist"]}')
                     Artist.update(artist, props)
                     plt.draw()
+            elif event.mouseevent.button == 2 and isinstance(event.artist, Artist):
+                thisPeak = event.artist
+                #sel_peak = (artist.get_offsets()[:, 0]).astype(int)
+                #artist_edgecolor = np.round(artist.get_edgecolor(), 8)
+                #ind = event.ind
+                thisPeak.remove()
+                #plt.gcf().canvas.mpl_connect('pick_event', onpick)
+                #c.set_offsets(xy_rejPeaks)
+                plt.draw()
+
             else:
                 return
 
         cid = fig1.canvas.mpl_connect('button_press_event', add_or_remove_point)
         cid2 = fig1.canvas.mpl_connect('pick_event', onpick)
-        fig1.canvas.mpl_disconnect(cid)
-        fig1.canvas.mpl_disconnect(cid2)
+        #fig1.canvas.mpl_disconnect(cid)
+        #fig1.canvas.mpl_disconnect(cid2)
 
         # save and discard buttons
         plt.subplots_adjust(bottom=0.25)
@@ -513,11 +554,13 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
 
         def add_rem(val):
             fig1.canvas.mpl_disconnect(cid2)
-            cid = fig1.canvas.mpl_connect('button_press_event', add_or_remove_point)
+            fig1.canvas.mpl_connect('button_press_event', add_or_remove_point)
+            #cid = fig1.canvas.mpl_connect('button_press_event', add_or_remove_point)
 
         def change_red_green(val):
             fig1.canvas.mpl_disconnect(cid)
-            cid2 = fig1.canvas.mpl_connect('pick_event', onpick)
+            fig1.canvas.mpl_connect('pick_event', onpick)
+            #cid2 = fig1.canvas.mpl_connect('pick_event', onpick)
 
         save_button.on_clicked(savefct)
         discard_button.on_clicked(discardfct)
@@ -539,8 +582,8 @@ subject = 'sub03_'
 sample_rate = 200
 
 # get raw data (header and data)
-hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03_part.csv', column_name='uV')
-timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03_part.csv', column_name='dt')
+hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03.csv', column_name='uV')
+timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi03.csv', column_name='dt')
 
 # bandpass filter given by heartpy
 bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,21], sample_rate=sample_rate, order=3, filtertype='bandpass')
@@ -632,9 +675,32 @@ print(f'length merged_peaklists: {len(merged_peaklists)}')
 merged_RR_masklist = list(itertools.chain(*stitched_RR_masklists))
 merged_RR_list = list(itertools.chain(*stitched_RR_lists))
 merged_removed_beats = list(itertools.chain(*stitched_removed_beats))
+print(f'type of merged_RR_list: {type(merged_RR_list)}')
+print(f'length merged_RR_list before deleting: {len(merged_RR_list)}')
+print(f'length merged_RR_masklist before deleting: {len(merged_RR_masklist)}')
+#print(f'length merged_removed_beats: {len(merged_removed_beats)}')
+
+### delete RR-distances that are too low and too high (and its respective entry in RR_masklists)
+## NEEDS TO BE PROOFED!!
+indices_to_be_deleted = []
 print(f'length merged_RR_list: {len(merged_RR_list)}')
-print(f'length merged_RR_masklist: {len(merged_RR_masklist)}')
-print(f'length merged_removed_beats: {len(merged_removed_beats)}')
+for i in range(len(merged_RR_list)-1):
+    if merged_RR_list[i] < 300 or merged_RR_list[i] > 1200:
+        indices_to_be_deleted.append(i)
+    else:
+        pass
+
+print(f'indices_to_be_deleted: {indices_to_be_deleted}')
+
+indices_to_be_deleted = sorted(indices_to_be_deleted, reverse=True)
+# delete entries of too low or too high RR-distances ( I can also convert list to an array: np.array(indices_to_be_deleted))
+for indx in indices_to_be_deleted:
+    if indx < len(merged_RR_list):
+        merged_RR_list.pop(indx)
+        merged_RR_masklist.pop(indx)
+
+print(f'length merged_RR_list after deleting: {len(merged_RR_list)}')
+print(f'length merged_RR_masklist after deleting: {len(merged_RR_masklist)}')
 
 ### put merged lists in working_data dict of whole episode
 wd_whole_epi['hr'] = merged_hr
