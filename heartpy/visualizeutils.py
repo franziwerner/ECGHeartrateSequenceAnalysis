@@ -264,15 +264,15 @@ def plot_poincare(working_data, measures, show = True, figsize=None,
 
     #plot scatter
     ax.scatter(x_plus, x_minus, color = colorpalette[0],
-                alpha = 0.75, label = 'peak-peak intervals')
+                alpha = 0.75, label = 'RR-Intervalle')
 
     try:
         #plot identity line
         mins = np.min([x_plus, x_minus])
         maxs = np.max([x_plus, x_minus])
         identity_line = np.linspace(np.min(mins), np.max(maxs))
-        ax.plot(identity_line, identity_line, color='black', alpha=0.5,
-                 label = 'identity line')
+        ax.plot(identity_line, identity_line, color='black', alpha=0.5)#,
+                 #label = 'identity line')
     except ValueError:
         pass
 
@@ -296,8 +296,8 @@ def plot_poincare(working_data, measures, show = True, figsize=None,
     el.set_edgecolor((0,0,0))
     el.fill = False
 
-    ax.set_xlabel(r'RRi$_n$ (ms)')
-    ax.set_ylabel(r'RRi$_{n+1}$ (ms)')
+    ax.set_xlabel(r'RR$_n$ (ms)') # früheres Label: ax.set_xlabel(r'RRi$_n$ (ms)')
+    ax.set_ylabel(r'RR$_{n+1}$ (ms)')
     ax.legend(loc=4, framealpha=0.6)
     #ax.legend(loc=(1.5,1.5), framealpha=0.6)
     ax.set_title(title)

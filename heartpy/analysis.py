@@ -67,7 +67,7 @@ def calc_rr(peaklist, sample_rate, working_data={}):
     '''
     peaklist = np.array(peaklist) #cast numpy array to be sure or correct array type
 
-    print("Yes. I am in analysis, calc_rr.")
+    #print("Yes. I am in analysis, calc_rr.")
     # delete first peak if within first 150ms (signal might start mid-beat after peak)
     if len(peaklist) > 0:
         if peaklist[0] <= ((sample_rate / 1000.0) * 150):
@@ -375,9 +375,12 @@ def calc_ts_measures(rr_list, rr_diff, rr_sqdiff, measures={}, working_data={}):
     measures['ibi'] = np.mean(rr_list)
 
     ##TODO:
+    # standard deviation of RR intervals
     measures['sdnn'] = np.std(rr_list)
+    # standard deviation of successive differences between adjacent RRs
     measures['sdsd'] = np.std(rr_diff)
     measures['rmssd'] = np.sqrt(np.mean(rr_sqdiff))
+    # number of pairs of successive RRs (NNs) that differ by more than 20 or 50 ms
     nn20 = rr_diff[np.where(rr_diff > 20.0)]
     nn50 = rr_diff[np.where(rr_diff > 50.0)]
     working_data['nn20'] = nn20
@@ -756,9 +759,9 @@ def calc_poincare(rr_list, rr_mask=[], measures={}, working_data={}):
         poincare values are appended to measures['poincare']
     '''
 
-    print("Hello. I am in analysis.py in calc_poincare.")
-    print(f'RR_masklist (in calc_poincare): {working_data["RR_masklist"]}')
-    print(f'RR_list (in calc_poincare): {working_data["RR_list"]}')
+    #print("Hello. I am in analysis.py in calc_poincare.")
+    #print(f'RR_masklist (in calc_poincare): {working_data["RR_masklist"]}')
+    #print(f'RR_list (in calc_poincare): {working_data["RR_list"]}')
 
     #generate vectors of adjacent peak-peak intervals
     x_plus = []
@@ -823,10 +826,10 @@ def calculation_poincare(measures={}, working_data={}):
             x_minus.append(working_data['RR_list'][i + 1])
         elif (working_data['RR_masklist'][i] == 0 and working_data['RR_masklist'][i + 1] == 1):
             x_plus.append(working_data['RR_list'][i])
-            print(f'first elif')
+            #print(f'Actual RR distance is considered and subsequent RR distance is not considered.')
         elif (working_data['RR_masklist'][i] == 1 and working_data['RR_masklist'][i + 1] == 0):
             x_minus.append(working_data['RR_list'][i + 1])
-            print(f'second elif')
+            #print(f'Actual RR distance is not considered and subsequent RR distance is considered')
         else:
             pass
 
