@@ -213,8 +213,7 @@ def segment_plotter(working_data, measures, title='Heart Rate Signal Peak Detect
         filenum += 1
 
 
-def plot_poincare(working_data, measures, show = True, figsize=None,
-                  title='Poincare plot'): # pragma: no cover
+def plot_poincare(working_data, measures, show = True, figsize=None, title='Lorenzplot'): #title='Poincare plot' # pragma: no cover
     '''visualize poincare plot
 
     function that visualises poincare plot.

@@ -129,6 +129,7 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
         wd_segment['hr'] = working_data['hr'][i]
         wd_segment['rolling_mean'] = working_data['rolling_mean'][i]
         wd_segment['sample_rate'] = working_data['sample_rate'][i]
+        print(f'1st RR_list: {working_data["RR_list"][i]}')
         m_segment['bpm'] = measures['bpm'][i]
         try:
             wd_segment['rejected_segments'] = working_data['rejected_segments'][i]
@@ -568,6 +569,7 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                     c.set_offsets(xy_rejPeaks)
                     plt.draw()
             elif event.mouseevent.button == 2 and isinstance(event.artist, Artist):
+                # peak and all its corresponding entries are deleted
                 thisPeak = event.artist
                 thisPeak.remove()
                 selPeak = (thisPeak.get_offsets()[:, 0]).astype(int)
@@ -589,9 +591,11 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                 # delete peak from respective dicts (in xy_rejPeaks only the last rejected peak of the sequence is listed)
                 # delete masklist entry
                 print(f'wd_segment[RR_masklist] before deleting: {wd_segment["RR_masklist"]}')
+                # peak is the first in sequence
                 if selPeak in wd_segment['peaklist'] and peak_ind == 0:
                     wd_segment['RR_masklist'] = np.delete(wd_segment['RR_masklist'], [peak_ind])
                     working_data['RR_masklist'][i] = np.delete(working_data['RR_masklist'][i], [peak_ind])
+                    print("Peak is the first in sequence.")
                 elif selPeak in wd_segment['peaklist'] and peak_ind != 0:
                     wd_segment['RR_masklist'] = np.delete(wd_segment['RR_masklist'], [peak_ind-1])
                     working_data['RR_masklist'][i] = np.delete(working_data['RR_masklist'][i], [peak_ind-1])
@@ -605,10 +609,10 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
                             working_data['RR_masklist'][i][peak_ind - 1] = 0
                         else:
                             print("predecessor or successor is red")
-                elif selPeak in wd_segment['peaklist'] and peak_ind == 0:
-                    wd_segment['RR_masklist'] = np.delete(wd_segment['RR_masklist'], [peak_ind])
-                    working_data['RR_masklist'][i] = np.delete(working_data['RR_masklist'][i], [peak_ind])
-                    print("Peak is the first in sequence.")
+                # elif selPeak in wd_segment['peaklist'] and peak_ind == 0:
+                #     wd_segment['RR_masklist'] = np.delete(wd_segment['RR_masklist'], [peak_ind])
+                #     working_data['RR_masklist'][i] = np.delete(working_data['RR_masklist'][i], [peak_ind])
+                #     print("Peak is the first in sequence.")
                 else:
                     print("masklist is already adapted")
                 print(f'wd_segment[RR_masklist] after deleting: {wd_segment["RR_masklist"]}')
@@ -700,16 +704,17 @@ def sequence_plotter(working_data, measures, title='Heart Rate Signal Peak Detec
 
     return choosen_sequence
 
+### PROGRAM START
 # subject (needs to be changed manually)
-subject = 'sub016_'
+subject = 'sub032_'
 #subject = 'sub021_'
 # episode (needs to be changed manually)
-episode = '3rd_Episode'
+episode = '5th_Episode'
 
 # storage path: generated plots and calculated data should be stored here; for real data analysis: delete last directory "tests"
-storage_path = os.path.join("/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/plots/", subject, episode)
+storage_path = os.path.join("/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/plots/tests", subject, episode)
 print(f'storage_path: {storage_path}')
-storage_path_data = os.path.join("/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/", subject, episode)
+storage_path_data = os.path.join("/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/tests", subject, episode)
 print(f'storage_path: {storage_path_data}')
 
 # check, whether plot path exists; if not -> create directory
@@ -732,14 +737,12 @@ else:
 sample_rate = 200
 
 # get raw data (header and data); needs to be changed manually!!
-hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi016_0_250.csv', column_name='uV')
-timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi016_0_250.csv', column_name='dt')
-
-#hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi016_0_250.csv', column_name='uV')
-#timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/thirdEpi016_0_250.csv', column_name='dt')
+hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/singleSequences/fifthEpi032.csv', column_name='uV')
+timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/singleSequences/fifthEpi032.csv', column_name='dt')
 
 # bandpass filter given by heartpy
-bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,21], sample_rate=sample_rate, order=3, filtertype='bandpass')
+bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,21], sample_rate=sample_rate, order=3, filtertype='bandpass') #7,21
+#bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,35], sample_rate=sample_rate, order=3, filtertype='bandpass')
 
 # create working_data dict, in which we can integrate merged arrays later on (in order to enable poincare plot)
 # here in process-function: calc_poincare for complete data set
@@ -772,6 +775,10 @@ stitched_removed_beats = []
 choosen_seq = sequence_plotter(work_data, meas, path=storage_path, subject=subject)
 print(f'meas1: {meas}')
 print(f'choosen_seq: {choosen_seq}')
+
+# save choosen_seq
+np.savetxt(os.path.join(storage_path_data, 'chosenSequences.csv'), choosen_seq, delimiter=',')
+
 print(f'work_data[peaklist][0]: {work_data["peaklist"][0]}')
 print(f'work_data[peaklist][1]: {work_data["peaklist"][1]}')
 print(f'work_data[RR_masklist][0]: {work_data["RR_masklist"][0]}')
@@ -806,7 +813,7 @@ print(f'length single entry in stitched_RR_lists: {len(stitched_RR_lists[0])}')
 print(f'length stitched_hr_data: {len(stitched_hr_data)}')
 
 # we need to fill up RR_list and RR_masklist to take into account the transitions between the individual sequences
-# distance between last peak in one sequence and first peak in subsequent sequence is not yet taken into account
+# distance between last peak in one sequence and first peak in subsequent sequence is calculated
 # RR_list and RR_masklist must be of length (len(peaklist)-1)
 for i in range(0, len(stitched_peaklists)-1):
     # rr_diff_trans is the time in ms between last peak of previous sequence and first peak of subsequent sequence
@@ -815,16 +822,16 @@ for i in range(0, len(stitched_peaklists)-1):
     # we need to check whether respective peaks are listed in removed_beats
     # Later on the entries being too small or too big were deleted
     # add rr_diff_trans to stitched_RR_lists
-    # actually we do not consider transition differences
     stitched_RR_lists[i] = np.append(stitched_RR_lists[i], rr_diff_trans)
-    stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 1)
+    # stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 1)
+    if rr_diff_trans >= 300 and rr_diff_trans <= 1200 and stitched_peaklists[i + 1][0] not in stitched_removed_beats[i + 1] and \
+            stitched_peaklists[i][len(stitched_peaklists[i]) - 1] not in stitched_removed_beats[i]:
+        stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 0)
+    else:
+        stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 1)
 
-    # if rr_diff_trans < 300 or rr_diff_trans > 1200:
-    #     stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 1)
-    # elif stitched_peaklists[i+1][0] in stitched_removed_beats or stitched_peaklists[i][len(stitched_peaklists[i]) - 1] in stitched_removed_beats:
-    #     stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 1)
-    # else:
-    #     stitched_RR_masklists[i] = np.append(stitched_RR_masklists[i], 0)
+print(f'rr_diff_trans: {rr_diff_trans}')
+# wenn ich rr_diff_trans schreiben möchte in Datei, muss ich das in der oberen for-Schleife machen (mittels append und dann nach INT konvertieren)
 
 print(f'last array entry stitched_peaklists[0]: {stitched_peaklists[0][len(stitched_peaklists[0])-1]}')
 print(f'first array entry stitched_peaklists[1]: {stitched_peaklists[1][0]}')
@@ -848,14 +855,13 @@ merged_removed_beats = list(itertools.chain(*stitched_removed_beats))
 print(f'type of merged_RR_list: {type(merged_RR_list)}')
 print(f'length merged_RR_list before deleting: {len(merged_RR_list)}')
 print(f'length merged_RR_masklist before deleting: {len(merged_RR_masklist)}')
-#print(f'length merged_removed_beats: {len(merged_removed_beats)}')
 
 ### delete RR-distances that are too low and too high (and its respective entry in RR_masklists)
 ## NEEDS TO BE CHECKED!! seems to be correct
 indices_to_be_deleted = []
 print(f'length merged_RR_list: {len(merged_RR_list)}')
 for i in range(len(merged_RR_list)-1):
-    if merged_RR_list[i] < 300 or merged_RR_list[i] > 1200:
+    if merged_RR_list[i] < 300 or merged_RR_list[i] > 2000: #1200: # all the others: 1500 and 300
         print(f'RR distance of {merged_RR_list[i]} will be neglected, because it is too small or too big.')
         indices_to_be_deleted.append(i)
     else:
@@ -887,7 +893,6 @@ print(f'removed_beats whole epi final: {wd_whole_epi["removed_beats"]}')
 print(f'peaklist whole epi final: {wd_whole_epi["peaklist"]}')
 print(f'RR_masklist whole epi final: {wd_whole_epi["RR_masklist"]}')
 print(f'RR_list whole epi final: {wd_whole_epi["RR_list"]}')
-print(f'meas_whole_epi: {meas_whole_epi}')
 #print(f'wd_whole_epi[hr]: {wd_whole_epi["hr"]}')
 #print(f'ybeat1: {wd_whole_epi["ybeat"]}')
 
@@ -979,6 +984,9 @@ wd_whole_epi['RR_sqdiff'] = rr_sqdiff
 # func calc_ts_measures calculates BPM, IBI, SDNN, SDSD, RMSSD, pNN20, pNN50, MAD
 wd_whole_epi, meas_whole_epi = hp.analysis.calc_ts_measures(rr_list_cor, rr_diff, rr_sqdiff, measures = meas_whole_epi, working_data = wd_whole_epi)
 
+# calculate frequency domain measures
+wd_whole_epi, meas_whole_epi = hp.analysis.calc_fd_measures(method='fft', welch_wsize=240, square_spectrum=False, measures=meas_whole_epi, working_data=wd_whole_epi, degree_smoothing_spline=3)
+
 #wd_whole_epi['sample_rate'] = sample_rate
 #print(f'wd_whole_epi["sample_rate"]: {wd_whole_epi["sample_rate"]}')
 #print(f'wd_whole_epi 2: {wd_whole_epi}')
@@ -996,7 +1004,13 @@ plt.show()
 # recalculated SD1, SD2 ... parameter
 # func works with rr_list and rr_masklist
 #meas_poincare = hp.analysis.calc_poincare(merged_RR_list, rr_mask = merged_RR_masklist, measures=meas_whole_epi, working_data=wd_whole_epi)
-meas_poincare = hp.analysis.calculation_poincare(measures=meas_whole_epi, working_data=wd_whole_epi)
+meas_poincare, wd_whole_epi = hp.analysis.calculation_poincare(measures=meas_whole_epi, working_data=wd_whole_epi)
+
+# save meas_whole_epi (the same as meas_poincare)
+with open(os.path.join(storage_path_data, 'meas_whole_epi.csv'), 'w') as csv_file:
+    writer = csv.writer(csv_file)
+    for key, value in meas_whole_epi.items():
+       writer.writerow([key, value])
 # save meas_poincare
 with open(os.path.join(storage_path_data, 'measures_poincare.csv'), 'w') as csv_file:
     writer = csv.writer(csv_file)
@@ -1020,7 +1034,7 @@ print(f'meas_whole_epi1: {meas_whole_epi}')
 # bei beiden kommt das gleiche raus, weil nur die
 #hp.plot_poincare(wd_whole_epi, meas_whole_epi, figsize = (20,5), title='Poincare Plot 1')
 #plt.show()
-hp.plot_poincare(wd_whole_epi, meas_poincare, figsize = (20,5), title='Poincare')
+hp.plot_poincare(wd_whole_epi, meas_poincare, figsize = (20,5), title='Lorenzplot')
 #plt.show()
 # Plot "Lorentzplot" is saved
 plt.savefig(os.path.join(storage_path, "Lorenzplot.png"))

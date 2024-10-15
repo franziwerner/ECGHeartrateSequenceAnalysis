@@ -7,6 +7,47 @@ from scipy.interpolate import CubicSpline
 from tftb.processing.cohen import PseudoWignerVilleDistribution
 import csv
 
+
+# sample_rate in Hz
+sample_rate = 200
+
+# get raw data (header and data)
+hrdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/singleSequences/fifthEpi010.csv', column_name='uV')
+timerdata_3rd = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/singleSequences/fifthEpi010.csv', column_name='dt')
+
+# plot without processing
+plt.plot(hrdata_3rd)
+plt.show()
+
+# without filtering
+wd_nbp_filtered, m_nbp_filtered = hp.process(hrdata_3rd,sample_rate = sample_rate)
+plot_nbp = hp.plotter(wd_nbp_filtered, m_nbp_filtered, figsize=(20,5), title = 'without filtering')
+plt.show()
+
+# bandpass filter given by heartpy
+bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,21], sample_rate=sample_rate, order=3, filtertype='bandpass')
+plt.plot(bp_filtered)
+plt.show()
+
+wd_bp_filtered, m_bp_filtered = hp.process(bp_filtered, sample_rate = sample_rate)
+plot_bp = hp.plotter(wd_bp_filtered, m_bp_filtered, figsize=(20,5), title = 'bandpass-filtered')
+plt.show()
+
+
+
+
+
+
+# with open('/Users/franziskawerner/Documents/ISN/DFGProjekt/EKG/csvEKG/vp046/MDC_ECG_LEAD_II.csv') as csvdatei:
+#     line = 0
+#     csv_reader_object = csv.reader(csvdatei, delimiter=',')
+#     print(csv_reader_object)
+#     for row in csv_reader_object:
+#         print(row)
+#         line += 1
+#     print(f'Processed {line} lines.')
+
+
 # example for SPWVD
 # wvd = WignerVilleDistribution(mod_signal)
 # wvd.run()
@@ -48,80 +89,80 @@ import csv
 #fs1 = hp.get_samplerate_mstimer(mstimer_EKG)
 #print(fs1)
 
-# sample_rate in Hz
-sample_rate = 200
-
-#hrdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/MDC_ECG_LEAD_II.csv', column_name='uV')
-#timerdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/MDC_ECG_LEAD_II.csv', column_name='dt')
-
-hrdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/file_00.csv', column_name='uV')
-timerdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/file_00.csv', column_name='dt')
-
-print(hrdata034)
-print(timerdata034)
-
-## print(timerdata034)
-working_data034, measures034 = hp.process(hrdata034, sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034)) #sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034))
-print(working_data034)
-print(measures034)
-
-print(working_data034['peaklist'][0:len(working_data034['peaklist'])])
-print(len(working_data034['peaklist']))
-
-def butter_highpass(cutoff, fs, order=5):
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    b, a = signal.butter(order, normal_cutoff, btype = "high", analog = False)
-    return b, a
-
-def butter_highpass_filter(data, cutoff, fs, order=5):
-    b, a = butter_highpass(cutoff, fs, order=order)
-    y = signal.filtfilt(b, a, data)
-    return y
-
-fps = 200
-
-## plotting
-hp.plotter(working_data034, measures034, figsize=(20,5), title = 'Heart Beat Detection ECG Signal with superimposed breathing')
-plt.show()
-
-# high-pass filtering
-filtered_ecg = butter_highpass_filter(hrdata034, 7, fps)
-
-working_data034f, measures034f = hp.process(filtered_ecg, sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034)) #sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034))
-print(working_data034f)
-print(measures034f)
-
-print('%.3f' %measures034f['bpm'])
-print('%.3f' %measures034f['rmssd'])
-print('%.3f' %measures034f['breathingrate'])
-
-print(working_data034f['peaklist'][0:len(working_data034f['peaklist'])])
-print(working_data034f['peaklist'])
-print(working_data034f['RR_list'][0:len(working_data034f['RR_list'])])
-
-### plot instantaneous HR
-actualHR = 60/(working_data034f['RR_list']/1000)
-instantaneousHR = actualHR/60
-print('Instantaneous HR:' + str(actualHR))
-print('kumRRList:' + str(working_data034f['RR_list']/1000))
-print('kumRRList_0:' + str(working_data034f['RR_list'][0]/1000))
-
-## generate cumulative RR-list in order to be able to plot the instantanoeus heartrate against time in seconds
-xTime = [0] * 42
-sum = 0
-for i in range(len(working_data034f['RR_list'])):
-    sum = sum + (working_data034f['RR_list'][i]/1000)
-    xTime[i] = sum
-
-print('xTime:' + str(xTime))
-
-spl = CubicSpline(xTime, instantaneousHR)
-
-plt.plot(figsize=(5, 7))
-#xnew = np.linspace(0, 10, num=1001)
-plt.plot(xTime, spl(xTime))
-plt.plot(xTime, instantaneousHR, 'o', label='data')
+# # sample_rate in Hz
+# sample_rate = 200
+#
+# #hrdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/MDC_ECG_LEAD_II.csv', column_name='uV')
+# #timerdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/MDC_ECG_LEAD_II.csv', column_name='dt')
+#
+# hrdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/file_00.csv', column_name='uV')
+# timerdata034 = hp.get_data('/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/data/file_00.csv', column_name='dt')
+#
+# print(hrdata034)
+# print(timerdata034)
+#
+# ## print(timerdata034)
+# working_data034, measures034 = hp.process(hrdata034, sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034)) #sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034))
+# print(working_data034)
+# print(measures034)
+#
+# print(working_data034['peaklist'][0:len(working_data034['peaklist'])])
+# print(len(working_data034['peaklist']))
+#
+# def butter_highpass(cutoff, fs, order=5):
+#     nyq = 0.5 * fs
+#     normal_cutoff = cutoff / nyq
+#     b, a = signal.butter(order, normal_cutoff, btype = "high", analog = False)
+#     return b, a
+#
+# def butter_highpass_filter(data, cutoff, fs, order=5):
+#     b, a = butter_highpass(cutoff, fs, order=order)
+#     y = signal.filtfilt(b, a, data)
+#     return y
+#
+# fps = 200
+#
+# ## plotting
+# hp.plotter(working_data034, measures034, figsize=(20,5), title = 'Heart Beat Detection ECG Signal with superimposed breathing')
+# plt.show()
+#
+# # high-pass filtering
+# filtered_ecg = butter_highpass_filter(hrdata034, 7, fps)
+#
+# working_data034f, measures034f = hp.process(filtered_ecg, sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034)) #sample_rate = sample_rate) #hp.get_samplerate_mstimer(timerdata034))
+# print(working_data034f)
+# print(measures034f)
+#
+# print('%.3f' %measures034f['bpm'])
+# print('%.3f' %measures034f['rmssd'])
+# print('%.3f' %measures034f['breathingrate'])
+#
+# print(working_data034f['peaklist'][0:len(working_data034f['peaklist'])])
+# print(working_data034f['peaklist'])
+# print(working_data034f['RR_list'][0:len(working_data034f['RR_list'])])
+#
+# ### plot instantaneous HR
+# actualHR = 60/(working_data034f['RR_list']/1000)
+# instantaneousHR = actualHR/60
+# print('Instantaneous HR:' + str(actualHR))
+# print('kumRRList:' + str(working_data034f['RR_list']/1000))
+# print('kumRRList_0:' + str(working_data034f['RR_list'][0]/1000))
+#
+# ## generate cumulative RR-list in order to be able to plot the instantanoeus heartrate against time in seconds
+# xTime = [0] * 42
+# sum = 0
+# for i in range(len(working_data034f['RR_list'])):
+#     sum = sum + (working_data034f['RR_list'][i]/1000)
+#     xTime[i] = sum
+#
+# print('xTime:' + str(xTime))
+#
+# spl = CubicSpline(xTime, instantaneousHR)
+#
+# plt.plot(figsize=(5, 7))
+# #xnew = np.linspace(0, 10, num=1001)
+# plt.plot(xTime, spl(xTime))
+# plt.plot(xTime, instantaneousHR, 'o', label='data')
 
 #### when I need more plots at once 
 #fig, ax = plt.subplots(2, 1, figsize=(5, 7))

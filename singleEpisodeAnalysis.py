@@ -81,6 +81,7 @@ print(f'hr data: {hrdata_3rd}')
 ## bandpass filter given by heartpy
 bp_filtered = hp.filter_signal(hrdata_3rd, cutoff=[7,21], sample_rate=sample_rate, order=3, filtertype='bandpass')
 wd_bp_filtered, m_bp_filtered = hp.process(bp_filtered, sample_rate = sample_rate)
+#wd_bp_filtered, m_bp_filtered = hp.process(hrdata_3rd, sample_rate = sample_rate)
 #print(f'wd_bp_filtered: {wd_bp_filtered}')
 #print(f'm_bp_filtered: {m_bp_filtered}')
 hp.plotter(wd_bp_filtered, m_bp_filtered, figsize=(20,5), title = 'bandpass-filtered with heartpy')
@@ -99,16 +100,16 @@ plt.show()
 # '%.3f' %m['bpm']
 
 # get user input and convert text to number
-seq_width = int(input("Sequence with: "))
+#seq_width = int(input("Sequence with: "))
 
-print(seq_width)
+#print(seq_width)
 
-work_data, meas = hp.process_segmentwise(bp_filtered, sample_rate=sample_rate, segment_width=seq_width)
-print(f'work_data: {work_data}')
-#print(f'meas: {meas}')
-print(len(work_data['hr']))
-sequence_plotter(work_data, meas, path='/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/segmentwise_plotting/')
-#plt.show()
+# work_data, meas = hp.process_segmentwise(bp_filtered, sample_rate=sample_rate, segment_width=seq_width)
+# print(f'work_data: {work_data}')
+# #print(f'meas: {meas}')
+# print(len(work_data['hr']))
+# sequence_plotter(work_data, meas, path='/Users/franziskawerner/PycharmProjects/heartrate_analysis_python-master/heartpy/segmentwise_plotting/')
+# #plt.show()
 
 ## get values from dict
 #x_freq_bp = wd_bp_filtered['frq']

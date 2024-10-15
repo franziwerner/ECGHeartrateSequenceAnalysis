@@ -70,7 +70,7 @@ def calc_rr(peaklist, sample_rate, working_data={}):
     #print("Yes. I am in analysis, calc_rr.")
     # delete first peak if within first 150ms (signal might start mid-beat after peak)
     if len(peaklist) > 0:
-        if peaklist[0] <= ((sample_rate / 1000.0) * 150):
+        if peaklist[0] <= ((sample_rate / 1000.0) * 5):
             peaklist = np.delete(peaklist, 0)
             working_data['ybeat'] = np.delete(working_data['ybeat'], 0)
     working_data['peaklist'] = peaklist # Make sure, peaklist is always an np.array
@@ -813,6 +813,7 @@ def calculation_poincare(measures={}, working_data={}):
 
     print(f'in calculation_poincare, working_data[RR_masklist]: {working_data["RR_masklist"]}')
     print(f'in calculation_poincare, working_data[RR_list]: {working_data["RR_list"]}')
+    print(f'in calculation_poincare, working_data[peaklist]: {working_data["peaklist"]}')
 
     # when first entry in RR_masklist is 1, we need to start the routine later on (when entry is 0) in order to guarantee correct order in x_plus and x_minus
     j = 0
@@ -867,4 +868,4 @@ def calculation_poincare(measures={}, working_data={}):
     print(f'sd2: {measures["sd2"]}.')
     print(f'sd1/sd2: {measures["sd1/sd2"]}.')
 
-    return measures
+    return measures, working_data
